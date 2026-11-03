@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Football Club Spin Picker - Live Multi-Device</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f8fafc; min-height: 100vh; display: flex;
+            flex-direction: column; align-items: center; padding: 20px;
+        }
+        h1 { font-size: 1.8rem; color: #38bdf8; text-align: center; margin-bottom: 5px; }
+        .live-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(16, 185, 129, 0.2); color: #34d399;
+            padding: 4px 12px; border-radius: 20px; font-size: 0.8rem;
+            margin-bottom: 20px; border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); } }
+
+        .container {
+            display: flex; flex-direction: column; align-items: center;
+            max-width: 500px; width: 100%; background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px); border: 1px solid #334155;
+            padding: 22px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        .controls { display: flex; gap: 10px; width: 100%; margin-bottom: 20px; flex-wrap: wrap; }
+        select {
+            flex: 1; min-width: 180px; padding: 12px; font-size: 0.95rem;
+            border-radius: 8px; border: 1px solid #475569; background: #0f172a;
+            color: #f8fafc; outline: none;
+        }
+        button.spin-btn {
+            padding: 12px 24px; font-size: 0.95rem; font-weight: 700;
+            color: #0f172a; background: #38bdf8; border: none;
+            border-radius: 8px; cursor: pointer; transition: 0.2s;
+        }
+        button.spin-btn:hover:not(:disabled) { background: #7dd3fc; }
+        button.spin-btn:disabled { background: #475569; color: #94a3b8; cursor: not-allowed; }
+
+        .wheel-box { position: relative; display: flex; justify-content: center; align-items: center; margin-bottom: 15px; }
+        .pointer {
+            position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+            width: 0; height: 0; border-left: 14px solid transparent;
+            border-right: 14px solid transparent; border-top: 25px solid #ef4444;
+            z-index: 10; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+        }
+        canvas { border-radius: 50%; box-shadow: 0 0 15px rgba(0,0,0,0.6); }
+
+        .toast {
+            margin-top: 10px; padding: 12px; background: #0369a1;
+            color: #f0f9ff; border-radius: 8px; font-weight: 600;
+            text-align: center; display: none; width: 100%; font-size: 0.9rem;
+        }
+        .toast.error { background: #991b1b; }
+
+        /* Modal Rekap */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+            display: none; justify-content: center; align-items: center;
+            z-index: 999; padding: 20px;
+        }
+        .modal-card {
+            background: #1e293b; border: 1px solid #38bdf8; padding: 20px;
+            border-radius: 12px; max-width: 450px; width: 100%; text-align: center;
+        }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; text-align: left; }
+        table th, table td { padding: 9px 12px; border-bottom: 1px solid #334155; font-size: 0.9rem; }
+        table th { background: #0f172a; color: #94a3b8; }
+        .modal-btn {
+            background: #22c55e; color: #0f172a; border: none; padding: 8px 18px;
+            border-radius: 6px; font-weight: bold; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>⚽ Spin Picker Live Multi-Device</h1>
+    <div class="live-badge">
+        <span class="live-dot"></span>
+        <span id="syncText">Tersambung ke Google Sheets</span>
+    </div>
+
+    <div class="container">
+        <div class="controls">
+            <select id="userDropdown">
+                <option value="" disabled selected>Memuat peserta...</option>
+            </select>
+            <button id="spinBtn" class="spin-btn" onclick="spinWheel()" disabled>PUTAR RODA</button>
+        </div>
+
+        <div class="wheel-box">
+            <div class="pointer"></div>
+            <canvas id="wheelCanvas" width="360" height="360"></canvas>
+        </div>
+
+        <div id="resultToast" class="toast"></div>
+    </div>
+
+    <!-- Modal Rekap -->
+    <div id="modalOverlay" class="modal-overlay">
+        <div class="modal-card">
+            <h2 style="color:#38bdf8; margin-bottom:8px;">🎉 Semua Putaran Selesai!</h2>
+            <p style="color:#94a3b8; font-size:0.85rem;">Seluruh hasil tersimpan di Google Sheet.</p>
+            <table>
+                <thead>
+                    <tr><th>No</th><th>Peserta</th><th>Klub</th></tr>
+                </thead>
+                <tbody id="recapBody"></tbody>
+            </table>
+            <button class="modal-btn" onclick="location.reload()">Muat Ulang</button>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // TEMPELKAN URL APPS SCRIPT ANDA DI SINI:
+        // ==========================================
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxTUZfUModltEkla-xSQLfxCbE7I_VwnGslRqpQcDrzHf9QS__9nk4MOPkCXKevRwUgWg/exec";
+
+        let clubs = [];
+        let users = [];
+        let results = [];
+        const colors = ["#f43f5e", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#3b82f6", "#ec4899", "#14b8a6"];
+
+        const canvas = document.getElementById("wheelCanvas");
+        const ctx = canvas.getContext("2d");
+        const userDropdown = document.getElementById("userDropdown");
+        const spinBtn = document.getElementById("spinBtn");
+        const resultToast = document.getElementById("resultToast");
+        const syncText = document.getElementById("syncText");
+
+        let currentAngle = 0;
+        let isSpinning = false;
+        let isSaving = false;
+
+        // Ambil data real-time dari Google Sheet
+        async function fetchServerData() {
+            if (isSpinning || isSaving) return; // Jangan timpa jika roda sedang berputar
+
+            try {
+                const response = await fetch(SCRIPT_URL);
+                const data = await response.json();
+
+                // Cek apakah ada perubahan data
+                const clubsChanged = JSON.stringify(clubs) !== JSON.stringify(data.availableClubs);
+                const usersChanged = JSON.stringify(users) !== JSON.stringify(data.availableUsers);
+
+                clubs = data.availableClubs || [];
+                users = data.availableUsers || [];
+                results = data.results || [];
+
+                if (clubsChanged || usersChanged) {
+                    renderDropdown();
+                    drawWheel();
+                }
+
+                syncText.textContent = `Live Sync (${new Date().toLocaleTimeString()})`;
+
+                // Tampilkan rekapan jika semua sudah selesai
+                if (clubs.length === 0 || users.length === 0) {
+                    if (results.length > 0) showFinalRecap();
+                }
+
+            } catch (err) {
+                syncText.textContent = "Gagal menyambung ke server";
+            }
+        }
+
+        function renderDropdown() {
+            const currentSelected = userDropdown.value;
+            userDropdown.innerHTML = '<option value="" disabled selected>-- Pilih Nama Anda --</option>';
+
+            if (users.length === 0) {
+                userDropdown.innerHTML = '<option value="" disabled selected>Peserta telah habis</option>';
+                spinBtn.disabled = true;
+                return;
+            }
+
+            users.forEach(u => {
+                const opt = document.createElement("option");
+                opt.value = u;
+                opt.textContent = u;
+                if (u === currentSelected) opt.selected = true;
+                userDropdown.appendChild(opt);
+            });
+
+            spinBtn.disabled = clubs.length === 0;
+        }
+
+        function drawWheel() {
+            const numClubs = clubs.length;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = centerX - 8;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (numClubs === 0) {
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.fillStyle = "#334155";
+                ctx.fill();
+                ctx.fillStyle = "#94a3b8";
+                ctx.font = "bold 15px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("Semua Klub Terpilih", centerX, centerY);
+                return;
+            }
+
+            const sliceAngle = (2 * Math.PI) / numClubs;
+
+            for (let i = 0; i < numClubs; i++) {
+                const angle = currentAngle + i * sliceAngle;
+
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, angle, angle + sliceAngle);
+                ctx.closePath();
+                ctx.fillStyle = colors[i % colors.length];
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = "#0f172a";
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(angle + sliceAngle / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 12px sans-serif";
+                ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
+                ctx.shadowBlur = 4;
+                ctx.fillText(clubs[i], radius - 18, 4);
+                ctx.restore();
+            }
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 14, 0, 2 * Math.PI);
+            ctx.fillStyle = "#ffffff";
+            ctx.fill();
+        }
+
+        function spinWheel() {
+            const selectedUser = userDropdown.value;
+            if (!selectedUser) {
+                alert("Pilih nama Anda di dropdown terlebih dahulu!");
+                return;
+            }
+            if (clubs.length === 0 || isSpinning || isSaving) return;
+
+            isSpinning = true;
+            spinBtn.disabled = true;
+            userDropdown.disabled = true;
+            resultToast.style.display = "none";
+
+            const spinRounds = 5 + Math.random() * 4;
+            const stopAngle = Math.random() * 2 * Math.PI;
+            const totalRotation = spinRounds * 2 * Math.PI + stopAngle;
+            
+            const duration = 4000;
+            const startTimestamp = performance.now();
+            const initialAngle = currentAngle;
+
+            function animate(now) {
+                const elapsed = now - startTimestamp;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                currentAngle = initialAngle + totalRotation * easeOut;
+
+                drawWheel();
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    currentAngle = currentAngle % (2 * Math.PI);
+                    handleSpinResult(selectedUser);
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+
+        async function handleSpinResult(selectedUser) {
+            isSpinning = false;
+            isSaving = true;
+
+            const sliceAngle = (2 * Math.PI) / clubs.length;
+            const pointerAngle = (3 * Math.PI / 2);
+            let normalizedAngle = (pointerAngle - currentAngle) % (2 * Math.PI);
+            if (normalizedAngle < 0) normalizedAngle += 2 * Math.PI;
+
+            const selectedIndex = Math.floor(normalizedAngle / sliceAngle);
+            const wonClub = clubs[selectedIndex];
+
+            resultToast.className = "toast";
+            resultToast.innerHTML = `Mengunci pilihan <strong>${wonClub}</strong> untuk <strong>${selectedUser}</strong>...`;
+            resultToast.style.display = "block";
+
+            try {
+                const res = await fetch(SCRIPT_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({ user: selectedUser, club: wonClub })
+                });
+                const data = await res.json();
+
+                if (data.status === "success") {
+                    resultToast.innerHTML = `🎉 Selamat <strong>${selectedUser}</strong>! Mendapatkan <strong>${wonClub}</strong>. Tersimpan di Cloud!`;
+                } else {
+                    resultToast.className = "toast error";
+                    resultToast.textContent = "⚠️ " + data.message;
+                }
+            } catch (err) {
+                resultToast.innerHTML = `🎉 Terpilih: <strong>${wonClub}</strong> untuk <strong>${selectedUser}</strong>!`;
+            }
+
+            isSaving = false;
+            userDropdown.disabled = false;
+            await fetchServerData(); // Segarkan data langsung setelah spin selesai
+        }
+
+        function showFinalRecap() {
+            const recapBody = document.getElementById("recapBody");
+            recapBody.innerHTML = "";
+
+            results.forEach((item, index) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td><strong>${item.user}</strong></td>
+                    <td style="color: #38bdf8;">${item.club}</td>
+                `;
+                recapBody.appendChild(tr);
+            });
+
+            document.getElementById("modalOverlay").style.display = "flex";
+        }
+
+        // Jalankan sinkronisasi pertama kali
+        fetchServerData();
+
+        // Auto-polling: cek perubahan data dari Google Sheet setiap 5 detik
+        setInterval(fetchServerData, 5000);
+    </script>
+</body>
+</html>
