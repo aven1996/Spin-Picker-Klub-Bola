@@ -158,7 +158,7 @@ function getSyncData(ss) {
         awayScore: null,
         away: allRows[k][5]
       });
-    }
+    } 
 
     // Tulis ke Google Sheet tab Jadwal
     jadwalSheet.getRange(2, 1, allRows.length, 6).setValues(allRows);
