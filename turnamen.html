@@ -12,7 +12,17 @@
             display: flex; flex-direction: column; align-items: center;
         }
         .wrapper { max-width: 1000px; width: 100%; }
-        header { text-align: center; margin-bottom: 15px; }
+        header {
+            display: flex; align-items: center; justify-content: center;
+            gap: 12px; margin-bottom: 15px;
+        }
+        .title-logo {
+            width: 40px; height: 40px; object-fit: contain; display: block;
+            border-radius: 0; box-shadow: none; background: transparent;
+            filter: none; -webkit-filter: none; mix-blend-mode: normal;
+            flex-shrink: 0;
+        }
+        .title-text { display: flex; flex-direction: column; align-items: flex-start; }
         h1 { color: #38bdf8; font-size: 1.8rem; margin-bottom: 6px; }
         p.desc { color: #94a3b8; font-size: 0.9rem; }
 
