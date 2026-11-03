@@ -310,17 +310,19 @@
                 return;
             }
 
+            // KUNCI ID pertandingan terlebih dahulu sebelum modal ditutup!
+            const targetId = activeMatchId;
             const homeScore = parseInt(hVal);
             const awayScore = parseInt(aVal);
 
-            // Update lokal langsung agar instan
-            const match = matches.find(m => m.id === activeMatchId);
+            // Update data lokal terlebih dahulu
+            const match = matches.find(m => m.id === targetId);
             if (match) {
                 match.homeScore = homeScore;
                 match.awayScore = awayScore;
             }
 
-            closeModal();
+            closeModal(); // Sekarang aman untuk menutup modal
             renderMatches(currentFilter);
             calculateStandings();
 
@@ -329,22 +331,28 @@
             syncStatus.textContent = "⏳ Menyimpan skor ke Google Sheet...";
 
             try {
-                await fetch(SCRIPT_URL, {
+                const response = await fetch(SCRIPT_URL, {
                     method: "POST",
                     headers: { "Content-Type": "text/plain;charset=utf-8" },
                     body: JSON.stringify({
                         action: "updateScore",
-                        matchId: activeMatchId,
+                        matchId: targetId, // Mengirim ID yang valid
                         homeScore: homeScore,
                         awayScore: awayScore
                     })
                 });
-                syncStatus.textContent = "✅ Skor berhasil tersimpan di Google Sheet!";
-            } catch (err) {
-                syncStatus.textContent = "⚠️ Gagal menyimpan ke server, tersimpan lokal.";
-            }
 
-            isSaving = false;
+                const resData = await response.json();
+                if (resData.status === "success") {
+                    syncStatus.textContent = "✅ Skor berhasil tersimpan di Google Sheet!";
+                } else {
+                    syncStatus.textContent = "⚠️ " + resData.message;
+                }
+            } catch (err) {
+                syncStatus.textContent = "⚠️ Gagal menyambung ke server.";
+            } finally {
+                isSaving = false;
+            }
         }
 
         // Kosongkan Skor (Kembalikan ke '-')
