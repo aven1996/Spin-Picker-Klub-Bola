@@ -11,25 +11,38 @@
             color: #f8fafc; min-height: 100vh; display: flex;
             flex-direction: column; align-items: center; padding: 20px;
         }
-        .title-wrap {
-            display: flex; align-items: center; justify-content: center; gap: 12px;
-            margin-bottom: 8px; text-align: center;
-            flex-direction: row;
-        }
-        h1 { font-size: 1.8rem; color: #38bdf8; text-align: center; margin: 0; }
-        .title-logo {
-            width: 52px; height: 52px; object-fit: contain; display: block;
-            border-radius: 0; box-shadow: none; background: transparent;
-            filter: none; -webkit-filter: none; mix-blend-mode: normal;
-        }
+        h1 { font-size: 1.8rem; color: #38bdf8; text-align: center; margin-bottom: 5px; }
+        
         .live-badge {
             display: inline-flex; align-items: center; gap: 6px;
             background: rgba(16, 185, 129, 0.2); color: #34d399;
             padding: 4px 12px; border-radius: 20px; font-size: 0.8rem;
-            margin-bottom: 20px; border: 1px solid rgba(16, 185, 129, 0.3);
+            margin-bottom: 12px; border: 1px solid rgba(16, 185, 129, 0.3);
         }
         .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); } }
+
+        /* Banner Notifikasi Turnamen Aktif */
+        .league-banner {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid #38bdf8;
+            padding: 10px 16px;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 500px;
+            margin-bottom: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+        .league-banner span { font-size: 0.85rem; font-weight: 600; color: #7dd3fc; }
+        .banner-btn {
+            background: #38bdf8; color: #0f172a; border: none;
+            padding: 6px 14px; border-radius: 6px; font-weight: 700;
+            cursor: pointer; font-size: 0.8rem; transition: 0.2s;
+        }
+        .banner-btn:hover { background: #7dd3fc; }
 
         .container {
             display: flex; flex-direction: column; align-items: center;
@@ -67,34 +80,6 @@
         }
         .toast.error { background: #991b1b; }
 
-        .success-modal-overlay {
-            position: fixed; inset: 0; background: rgba(2, 6, 23, 0.7);
-            display: none; justify-content: center; align-items: center;
-            z-index: 1000; padding: 20px;
-        }
-        .success-modal-box {
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.96));
-            border: 1px solid rgba(56, 189, 248, 0.6); border-radius: 18px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5); padding: 28px 24px; max-width: 360px;
-            width: 100%; text-align: center; animation: modalPop 0.25s ease-out;
-        }
-        @keyframes modalPop {
-            from { opacity: 0; transform: scale(0.88) translateY(12px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        .success-icon {
-            width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; font-size: 2rem;
-            background: rgba(34, 197, 94, 0.18); color: #4ade80; border: 2px solid rgba(74, 222, 128, 0.35);
-        }
-        .success-title {
-            color: #f8fafc; font-size: 1.3rem; font-weight: 800; margin-bottom: 8px;
-        }
-        .success-text {
-            color: #cbd5e1; font-size: 0.95rem; line-height: 1.5; margin: 0;
-        }
-
-        /* Modal Rekap */
         .modal-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.85);
             display: none; justify-content: center; align-items: center;
@@ -108,20 +93,24 @@
         table th, table td { padding: 9px 12px; border-bottom: 1px solid #334155; font-size: 0.9rem; }
         table th { background: #0f172a; color: #94a3b8; }
         .modal-btn {
-            background: #22c55e; color: #0f172a; border: none; padding: 8px 18px;
-            border-radius: 6px; font-weight: bold; cursor: pointer;
+            border: none; padding: 10px 20px; border-radius: 6px;
+            font-weight: bold; cursor: pointer; font-size: 0.9rem;
         }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <div class="title-wrap">
-        <img src="logo-SL.png" alt="Logo Smuhda League" class="title-logo">
-        <h1>Spin Picker Live Smuhda League</h1>
-    </div>
+    <h1>⚽ Spin Picker Live Multi-Device</h1>
     <div class="live-badge">
         <span class="live-dot"></span>
-        <span id="syncText">Tersambung ke Google Sheets</span>
+        <span id="syncText">Menghubungkan ke Google Sheets...</span>
+    </div>
+
+    <!-- Banner Pintasan jika Liga Sudah Aktif -->
+    <div id="leagueBanner" class="league-banner">
+        <span>🏆 Turnamen Liga Sedang Berlangsung</span>
+        <button class="banner-btn" onclick="keHalamanLiga()">Buka Liga ➔</button>
     </div>
 
     <div class="container">
@@ -140,18 +129,10 @@
         <div id="resultToast" class="toast"></div>
     </div>
 
-    <div id="successModalOverlay" class="success-modal-overlay" aria-live="polite">
-        <div class="success-modal-box">
-            <div class="success-icon">✓</div>
-            <div class="success-title">Tersimpan di Cloud</div>
-            <p id="successModalText" class="success-text">Data berhasil disimpan.</p>
-        </div>
-    </div>
-
-    <!-- Modal Rekap -->
+    <!-- Modal Rekap Akhir -->
     <div id="modalOverlay" class="modal-overlay">
         <div class="modal-card">
-            <h2 style="color:#38bdf8; margin-bottom:8px;">🎉 Semua Putaran Selesai!</h2>
+            <h2 id="modalTitle" style="color:#38bdf8; margin-bottom:8px;">🎉 Semua Putaran Selesai!</h2>
             <p style="color:#94a3b8; font-size:0.85rem;">Seluruh hasil tersimpan di Google Sheet.</p>
             <table>
                 <thead>
@@ -159,19 +140,25 @@
                 </thead>
                 <tbody id="recapBody"></tbody>
             </table>
-            <button class="modal-btn" onclick="location.reload()">Muat Ulang</button>
+            
+            <div style="display:flex; gap:10px; justify-content:center; margin-top:15px;">
+                <button class="modal-btn" style="background:#475569; color:#fff;" onclick="location.reload()">Muat Ulang</button>
+                <button id="btnMulaiLiga" class="modal-btn" style="background:#38bdf8; color:#0f172a;" onclick="keHalamanLiga()">
+                    Mulai Liga 🏆
+                </button>
+            </div>
         </div>
     </div>
 
     <script>
-        // ==========================================
-        // TEMPELKAN URL APPS SCRIPT ANDA DI SINI:
-        // ==========================================
+        // TEMPELKAN URL APPS SCRIPT ANDA DI SINI
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxTUZfUModltEkla-xSQLfxCbE7I_VwnGslRqpQcDrzHf9QS__9nk4MOPkCXKevRwUgWg/exec";
 
         let clubs = [];
         let users = [];
         let results = [];
+        let isLeagueStarted = false;
+
         const colors = ["#f43f5e", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#3b82f6", "#ec4899", "#14b8a6"];
 
         const canvas = document.getElementById("wheelCanvas");
@@ -180,28 +167,36 @@
         const spinBtn = document.getElementById("spinBtn");
         const resultToast = document.getElementById("resultToast");
         const syncText = document.getElementById("syncText");
-        const successModalOverlay = document.getElementById("successModalOverlay");
-        const successModalText = document.getElementById("successModalText");
+        const leagueBanner = document.getElementById("leagueBanner");
+        const btnMulaiLiga = document.getElementById("btnMulaiLiga");
 
         let currentAngle = 0;
         let isSpinning = false;
         let isSaving = false;
 
-        // Ambil data real-time dari Google Sheet
         async function fetchServerData() {
-            if (isSpinning || isSaving) return; // Jangan timpa jika roda sedang berputar
+            if (isSpinning || isSaving) return;
 
             try {
                 const response = await fetch(SCRIPT_URL);
                 const data = await response.json();
 
-                // Cek apakah ada perubahan data
                 const clubsChanged = JSON.stringify(clubs) !== JSON.stringify(data.availableClubs);
                 const usersChanged = JSON.stringify(users) !== JSON.stringify(data.availableUsers);
 
                 clubs = data.availableClubs || [];
                 users = data.availableUsers || [];
                 results = data.results || [];
+                isLeagueStarted = data.isLeagueStarted || (data.matches && data.matches.length > 0);
+
+                // Periksa apakah turnamen liga sudah berjalan
+                if (isLeagueStarted) {
+                    leagueBanner.style.display = "flex";
+                    btnMulaiLiga.textContent = "Lanjutkan Liga 🏆";
+                } else {
+                    leagueBanner.style.display = "none";
+                    btnMulaiLiga.textContent = "Mulai Liga 🏆";
+                }
 
                 if (clubsChanged || usersChanged) {
                     renderDropdown();
@@ -210,7 +205,7 @@
 
                 syncText.textContent = `Live Sync (${new Date().toLocaleTimeString()})`;
 
-                // Tampilkan rekapan jika semua sudah selesai
+                // Tampilkan rekapan jika spin sudah habis
                 if (clubs.length === 0 || users.length === 0) {
                     if (results.length > 0) showFinalRecap();
                 }
@@ -333,16 +328,6 @@
             requestAnimationFrame(animate);
         }
 
-        function showSuccessModal(user, club) {
-            successModalText.textContent = `${user} berhasil menyimpan pilihan klub ${club} ke Cloud.`;
-            successModalOverlay.style.display = "flex";
-
-            clearTimeout(showSuccessModal.timeoutId);
-            showSuccessModal.timeoutId = setTimeout(() => {
-                successModalOverlay.style.display = "none";
-            }, 3000);
-        }
-
         async function handleSpinResult(selectedUser) {
             isSpinning = false;
             isSaving = true;
@@ -356,7 +341,7 @@
             const wonClub = clubs[selectedIndex];
 
             resultToast.className = "toast";
-            resultToast.innerHTML = `Mengunci pilihan <strong>${wonClub}</strong> untuk <strong>${selectedUser}</strong>...`;
+            resultToast.innerHTML = `Mengunci <strong>${wonClub}</strong> untuk <strong>${selectedUser}</strong>...`;
             resultToast.style.display = "block";
 
             try {
@@ -368,8 +353,7 @@
                 const data = await res.json();
 
                 if (data.status === "success") {
-                    resultToast.style.display = "none";
-                    showSuccessModal(selectedUser, wonClub);
+                    resultToast.innerHTML = `🎉 Selamat <strong>${selectedUser}</strong>! Mendapatkan <strong>${wonClub}</strong>. Tersimpan di Cloud!`;
                 } else {
                     resultToast.className = "toast error";
                     resultToast.textContent = "⚠️ " + data.message;
@@ -380,7 +364,7 @@
 
             isSaving = false;
             userDropdown.disabled = false;
-            await fetchServerData(); // Segarkan data langsung setelah spin selesai
+            await fetchServerData();
         }
 
         function showFinalRecap() {
@@ -400,10 +384,13 @@
             document.getElementById("modalOverlay").style.display = "flex";
         }
 
-        // Jalankan sinkronisasi pertama kali
-        fetchServerData();
+        // Pindah ke Halaman Turnamen (TIDAK mengacak ulang jadwal)
+        function keHalamanLiga() {
+            localStorage.setItem("SCRIPT_URL", SCRIPT_URL);
+            window.location.href = "turnamen.html";
+        }
 
-        // Auto-polling: cek perubahan data dari Google Sheet setiap 5 detik
+        fetchServerData();
         setInterval(fetchServerData, 5000);
     </script>
 </body>
