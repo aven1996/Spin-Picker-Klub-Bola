@@ -12,7 +12,16 @@
             display: flex; flex-direction: column; align-items: center;
         }
         .wrapper { max-width: 1000px; width: 100%; }
-        header { text-align: center; margin-bottom: 15px; }
+        header {
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            text-align: left; margin-bottom: 15px;
+        }
+        .title-logo {
+            width: 52px; height: 52px; object-fit: contain; display: block;
+            border-radius: 0; box-shadow: none; background: transparent;
+            filter: none; -webkit-filter: none; mix-blend-mode: normal;
+        }
+        .title-text { display: flex; flex-direction: column; align-items: flex-start; }
         h1 { color: #38bdf8; font-size: 1.8rem; margin-bottom: 6px; }
         p.desc { color: #94a3b8; font-size: 0.9rem; }
 
@@ -129,8 +138,11 @@
 
     <div class="wrapper">
         <header>
-            <h1>🏆 Liga Antar Klub Terpilih</h1>
-            <p class="desc">Sistem 2 Leg (Kandang & Tandang). Setiap perubahan skor otomatis tersimpan di Google Sheet.</p>
+            <img src="logo-SL.png" alt="Logo Smuhda League" class="title-logo">
+            <div class="title-text">
+                <h1>SMUHDA LEAGUE</h1>
+                <p class="desc">Sistem 2 Leg (Kandang & Tandang). Setiap perubahan skor otomatis tersimpan di Google Sheet.</p>
+            </div>
         </header>
 
         <div style="text-align: center;">

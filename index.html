@@ -11,7 +11,17 @@
             color: #f8fafc; min-height: 100vh; display: flex;
             flex-direction: column; align-items: center; padding: 20px;
         }
-        h1 { font-size: 1.8rem; color: #38bdf8; text-align: center; margin-bottom: 5px; }
+        .title-wrap {
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            margin-bottom: 8px; text-align: left;
+            flex-direction: row;
+        }
+        .title-logo {
+            width: 52px; height: 52px; object-fit: contain; display: block;
+            border-radius: 0; box-shadow: none; background: transparent;
+            filter: none; -webkit-filter: none; mix-blend-mode: normal;
+        }
+        h1 { font-size: 1.8rem; color: #38bdf8; text-align: left; margin-bottom: 5px; }
         
         .live-badge {
             display: inline-flex; align-items: center; gap: 6px;
@@ -101,7 +111,10 @@
 </head>
 <body>
 
-    <h1>⚽ Spin Picker Live Multi-Device</h1>
+    <div class="title-wrap">
+        <img src="logo-SL.png" alt="Logo Smuhda League" class="title-logo">
+        <h1>Spin Picker Smuhda League</h1>
+    </div>
     <div class="live-badge">
         <span class="live-dot"></span>
         <span id="syncText">Menghubungkan ke Google Sheets...</span>
