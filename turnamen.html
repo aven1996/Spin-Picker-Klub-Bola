@@ -277,6 +277,7 @@
 
                 participatingClubs = data.clubsInLeague || [];
                 matches = data.matches || [];
+                sortMatchesByLastUpdate();
 
                 if (matches.length > 0) {
                     renderMatches(currentFilter);
@@ -290,17 +291,48 @@
             }
         }
 
+        function parseMatchTimestamp(value) {
+            if (!value) return 0;
+            const time = new Date(value);
+            return Number.isNaN(time.getTime()) ? 0 : time.getTime();
+        }
+
+        function formatMatchUpdatedText(value) {
+            if (!value) return "Belum ada skor";
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return "Belum ada skor";
+            return `Update ${date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`;
+        }
+
+        function sortMatchesByLastUpdate() {
+            matches.sort((a, b) => {
+                const aUpdatedAt = parseMatchTimestamp(a.updatedAt);
+                const bUpdatedAt = parseMatchTimestamp(b.updatedAt);
+                if (aUpdatedAt !== bUpdatedAt) return bUpdatedAt - aUpdatedAt;
+                return Number(a.id || 0) - Number(b.id || 0);
+            });
+        }
+
         // 2. Render Kartu Pertandingan
         function renderMatches(legFilter = 'all') {
             const grid = document.getElementById("matchGrid");
             grid.innerHTML = "";
 
-            const filtered = matches.filter(m => legFilter === 'all' || m.leg.toString() === legFilter);
+            const filtered = matches
+                .filter(m => legFilter === 'all' || m.leg.toString() === legFilter)
+                .slice()
+                .sort((a, b) => {
+                    const aUpdatedAt = parseMatchTimestamp(a.updatedAt);
+                    const bUpdatedAt = parseMatchTimestamp(b.updatedAt);
+                    if (aUpdatedAt !== bUpdatedAt) return bUpdatedAt - aUpdatedAt;
+                    return Number(a.id || 0) - Number(b.id || 0);
+                });
 
             filtered.forEach(m => {
                 const isPlayed = m.homeScore !== null && m.awayScore !== null;
                 const homeScoreText = isPlayed ? m.homeScore : "-";
                 const awayScoreText = isPlayed ? m.awayScore : "-";
+                const updatedText = formatMatchUpdatedText(m.updatedAt);
 
                 const card = document.createElement("div");
                 card.className = "match-card";
@@ -309,7 +341,7 @@
                 card.innerHTML = `
                     <div class="card-header">
                         <span class="badge-leg">LEG ${m.leg}</span>
-                        <span>${isPlayed ? 'Selesai' : 'Klik isi skor'}</span>
+                        <span>${isPlayed ? updatedText : 'Klik isi skor'}</span>
                     </div>
                     <div class="team-row">
                         <div class="team-name">${getClubDisplayHTML(m.home)}</div>
@@ -363,8 +395,10 @@
             if (match) {
                 match.homeScore = homeScore;
                 match.awayScore = awayScore;
+                match.updatedAt = new Date().toISOString();
             }
 
+            sortMatchesByLastUpdate();
             closeModal();
             renderMatches(currentFilter);
             calculateStandings();
@@ -386,6 +420,12 @@
 
                 const resData = await response.json();
                 if (resData.status === "success") {
+                    const match = matches.find(m => m.id === targetId);
+                    if (match && resData.updatedAt) {
+                        match.updatedAt = resData.updatedAt;
+                    }
+                    sortMatchesByLastUpdate();
+                    renderMatches(currentFilter);
                     syncStatus.textContent = "✅ Skor berhasil tersimpan di Google Sheet!";
                 } else {
                     syncStatus.textContent = "⚠️ " + resData.message;
@@ -404,8 +444,10 @@
             if (match) {
                 match.homeScore = null;
                 match.awayScore = null;
+                match.updatedAt = new Date().toISOString();
             }
 
+            sortMatchesByLastUpdate();
             closeModal();
             renderMatches(currentFilter);
             calculateStandings();
@@ -436,7 +478,12 @@
         async function resetAllScores() {
             if (!confirm("Yakin ingin menghapus seluruh skor pertandingan di Google Sheet?")) return;
 
-            matches.forEach(m => { m.homeScore = null; m.awayScore = null; });
+            matches.forEach(m => {
+                m.homeScore = null;
+                m.awayScore = null;
+                m.updatedAt = new Date().toISOString();
+            });
+            sortMatchesByLastUpdate();
             renderMatches(currentFilter);
             calculateStandings();
 
