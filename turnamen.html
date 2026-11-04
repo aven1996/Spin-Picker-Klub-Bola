@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liga Pertandingan & Klasemen Grup</title>
+    <title>SMUHDA LEAGUE -Liga Pertandingan & Klasemen </title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
         body {
@@ -70,6 +70,8 @@
         .filter-btn.active { background: #0284c7; }
         .search-wrap {
             display: flex; align-items: center; gap: 10px; margin-top: 10px; width: 100%;
+            justify-content: flex-end;
+            max-width: 420px;
         }
         .search-input {
             flex: 1; min-width: 220px; background: rgba(15, 23, 42, 0.9);
@@ -82,6 +84,20 @@
             background: #475569; color: #f8fafc; border: 1px solid #64748b;
             border-radius: 8px; padding: 9px 12px; font-size: 0.8rem; cursor: pointer;
             white-space: nowrap;
+        }
+
+        @media (max-width: 640px) {
+            .action-bar {
+                align-items: stretch;
+            }
+            .search-wrap {
+                max-width: none;
+                justify-content: stretch;
+                width: 100%;
+            }
+            .search-input {
+                min-width: 0;
+            }
         }
 
         /* Grid Kartu Pertandingan */
@@ -189,18 +205,15 @@
 
         <!-- Bagian Jadwal -->
         <section id="jadwalSection" class="view-section active">
-            <div class="action-bar" style="flex-direction: column; align-items: stretch;">
-                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                        <a href="index.html" class="btn-back">⬅ Kembali ke Spin</a>
-                        <button class="filter-btn active" onclick="filterLeg('all', this)">Semua Leg</button>
-                        <button class="filter-btn" onclick="filterLeg('1', this)">Leg 1</button>
-                        <button class="filter-btn" onclick="filterLeg('2', this)">Leg 2</button>
-                    </div>
-                    <!-- <button class="btn-reset" onclick="resetAllScores()">Reset Skor</button> -->
+            <div class="action-bar" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                    <a href="index.html" class="btn-back">⬅ Kembali ke Spin</a>
+                    <button class="filter-btn active" onclick="filterLeg('all', this)">Semua Leg</button>
+                    <button class="filter-btn" onclick="filterLeg('1', this)">Leg 1</button>
+                    <button class="filter-btn" onclick="filterLeg('2', this)">Leg 2</button>
                 </div>
                 <div class="search-wrap">
-                    <input id="matchSearch" class="search-input" type="text" placeholder="Cari klub atau nama peserta..." aria-label="Cari klub atau nama peserta">
+                    <input id="matchSearch" class="search-input" type="text" placeholder="Cari 2 tim / nama peserta (contoh: A vs B)" aria-label="Cari klub atau nama peserta yang bertanding">
                     <button type="button" class="search-clear" onclick="clearMatchSearch()">Clear</button>
                 </div>
             </div>
@@ -274,10 +287,34 @@
             return (value || '').toString().trim().toLowerCase();
         }
 
+        function tokenizeSearchQuery(value) {
+            return normalizeSearchText(value)
+                .replace(/\s*(?:vs|v)\s*/gi, ' ')
+                .replace(/[\/|\-]/g, ' ')
+                .replace(/[^a-z0-9\s]/g, ' ')
+                .split(/\s+/)
+                .filter(Boolean);
+        }
+
         function getMatchSearchText(match) {
             const homeUser = clubUserMap[match.home] || '';
             const awayUser = clubUserMap[match.away] || '';
             return `${match.home || ''} ${homeUser} ${match.away || ''} ${awayUser}`.toLowerCase();
+        }
+
+        function matchesSearchQuery(match, query) {
+            const searchText = normalizeSearchText(query);
+            if (!searchText) return true;
+
+            const cardText = getMatchSearchText(match);
+            if (cardText.includes(searchText)) return true;
+
+            const tokens = tokenizeSearchQuery(searchText);
+            if (!tokens.length) return true;
+
+            if (tokens.length === 1) return cardText.includes(tokens[0]);
+
+            return tokens.every(token => cardText.includes(token));
         }
 
         // Fungsi pembantu menampilkan: Nama Klub "Nama Peserta"
@@ -353,7 +390,7 @@
             const searchValue = normalizeSearchText(currentSearchTerm);
             const filtered = matches
                 .filter(m => (legFilter === 'all' || m.leg.toString() === legFilter))
-                .filter(m => !searchValue || getMatchSearchText(m).includes(searchValue))
+                .filter(m => !searchValue || matchesSearchQuery(m, currentSearchTerm))
                 .slice()
                 .sort((a, b) => {
                     const aUpdatedAt = parseMatchTimestamp(a.updatedAt);
