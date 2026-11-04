@@ -68,6 +68,21 @@
             padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;
         }
         .filter-btn.active { background: #0284c7; }
+        .search-wrap {
+            display: flex; align-items: center; gap: 10px; margin-top: 10px; width: 100%;
+        }
+        .search-input {
+            flex: 1; min-width: 220px; background: rgba(15, 23, 42, 0.9);
+            border: 1px solid #475569; border-radius: 8px; padding: 10px 12px;
+            color: #f8fafc; font-size: 0.9rem; outline: none;
+        }
+        .search-input::placeholder { color: #64748b; }
+        .search-input:focus { border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12); }
+        .search-clear {
+            background: #475569; color: #f8fafc; border: 1px solid #64748b;
+            border-radius: 8px; padding: 9px 12px; font-size: 0.8rem; cursor: pointer;
+            white-space: nowrap;
+        }
 
         /* Grid Kartu Pertandingan */
         .match-grid {
@@ -174,14 +189,20 @@
 
         <!-- Bagian Jadwal -->
         <section id="jadwalSection" class="view-section active">
-            <div class="action-bar">
-                <div style="display: flex; gap: 8px;">
-                    <a href="index.html" class="btn-back">⬅ Kembali ke Spin</a>
-                    <button class="filter-btn active" onclick="filterLeg('all', this)">Semua Leg</button>
-                    <button class="filter-btn" onclick="filterLeg('1', this)">Leg 1</button>
-                    <button class="filter-btn" onclick="filterLeg('2', this)">Leg 2</button>
+            <div class="action-bar" style="flex-direction: column; align-items: stretch;">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                        <a href="index.html" class="btn-back">⬅ Kembali ke Spin</a>
+                        <button class="filter-btn active" onclick="filterLeg('all', this)">Semua Leg</button>
+                        <button class="filter-btn" onclick="filterLeg('1', this)">Leg 1</button>
+                        <button class="filter-btn" onclick="filterLeg('2', this)">Leg 2</button>
+                    </div>
+                    <!-- <button class="btn-reset" onclick="resetAllScores()">Reset Skor</button> -->
                 </div>
-                <!-- <button class="btn-reset" onclick="resetAllScores()">Reset Skor</button> -->
+                <div class="search-wrap">
+                    <input id="matchSearch" class="search-input" type="text" placeholder="Cari klub atau nama peserta..." aria-label="Cari klub atau nama peserta">
+                    <button type="button" class="search-clear" onclick="clearMatchSearch()">Clear</button>
+                </div>
             </div>
             <div id="matchGrid" class="match-grid"></div>
         </section>
@@ -244,9 +265,20 @@
         let clubUserMap = {}; // Penyimpan relasi Klub -> Nama Peserta
         let activeMatchId = null;
         let currentFilter = 'all';
+        let currentSearchTerm = '';
         let isSaving = false;
 
         const syncStatus = document.getElementById("syncStatus");
+
+        function normalizeSearchText(value) {
+            return (value || '').toString().trim().toLowerCase();
+        }
+
+        function getMatchSearchText(match) {
+            const homeUser = clubUserMap[match.home] || '';
+            const awayUser = clubUserMap[match.away] || '';
+            return `${match.home || ''} ${homeUser} ${match.away || ''} ${awayUser}`.toLowerCase();
+        }
 
         // Fungsi pembantu menampilkan: Nama Klub "Nama Peserta"
         function getClubDisplayHTML(clubName) {
@@ -318,8 +350,10 @@
             const grid = document.getElementById("matchGrid");
             grid.innerHTML = "";
 
+            const searchValue = normalizeSearchText(currentSearchTerm);
             const filtered = matches
-                .filter(m => legFilter === 'all' || m.leg.toString() === legFilter)
+                .filter(m => (legFilter === 'all' || m.leg.toString() === legFilter))
+                .filter(m => !searchValue || getMatchSearchText(m).includes(searchValue))
                 .slice()
                 .sort((a, b) => {
                     const aUpdatedAt = parseMatchTimestamp(a.updatedAt);
@@ -327,6 +361,11 @@
                     if (aUpdatedAt !== bUpdatedAt) return bUpdatedAt - aUpdatedAt;
                     return Number(a.id || 0) - Number(b.id || 0);
                 });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #94a3b8; background: rgba(15, 23, 42, 0.65); border: 1px solid #334155; border-radius: 12px; padding: 20px;">Tidak ada pertandingan yang cocok dengan pencarian.</div>';
+                return;
+            }
 
             filtered.forEach(m => {
                 const isPlayed = m.homeScore !== null && m.awayScore !== null;
@@ -571,6 +610,24 @@
             document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
             btn.classList.add("active");
             renderMatches(leg);
+        }
+
+        function clearMatchSearch() {
+            currentSearchTerm = '';
+            const matchSearchInput = document.getElementById("matchSearch");
+            if (matchSearchInput) {
+                matchSearchInput.value = '';
+                matchSearchInput.focus();
+            }
+            renderMatches(currentFilter);
+        }
+
+        const matchSearchInput = document.getElementById("matchSearch");
+        if (matchSearchInput) {
+            matchSearchInput.addEventListener("input", (event) => {
+                currentSearchTerm = event.target.value;
+                renderMatches(currentFilter);
+            });
         }
 
         // Inisialisasi awal & Sinkronisasi berkala
