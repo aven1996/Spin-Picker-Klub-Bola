@@ -201,15 +201,18 @@
                 clubs = data.availableClubs || [];
                 users = data.availableUsers || [];
                 results = data.results || [];
-                isLeagueStarted = data.isLeagueStarted || (data.matches && data.matches.length > 0);
+                const allParticipantsSpun = data.allParticipantsSpun === true;
+                isLeagueStarted = allParticipantsSpun && data.isLeagueStarted === true;
 
                 // Periksa apakah turnamen liga sudah berjalan
                 if (isLeagueStarted) {
                     leagueBanner.style.display = "flex";
                     btnMulaiLiga.textContent = "Lanjutkan Liga 🏆";
+                    btnMulaiLiga.style.display = "inline-block";
                 } else {
                     leagueBanner.style.display = "none";
                     btnMulaiLiga.textContent = "Mulai Liga 🏆";
+                    btnMulaiLiga.style.display = "none";
                 }
 
                 if (clubsChanged || usersChanged) {
@@ -219,10 +222,8 @@
 
                 syncText.textContent = `Live Sync (${new Date().toLocaleTimeString()})`;
 
-                // Tampilkan rekapan jika spin sudah habis
-                if (clubs.length === 0 || users.length === 0) {
-                    if (results.length > 0) showFinalRecap();
-                }
+                // Tampilkan rekapan setelah seluruh peserta selesai spin.
+                if (allParticipantsSpun && results.length > 0) showFinalRecap();
 
             } catch (err) {
                 syncText.textContent = "Gagal menyambung ke server";

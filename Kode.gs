@@ -116,14 +116,23 @@ function getSyncData(ss) {
 
   var availableUsers = allPeserta.filter(u => !takenUsers.includes(u));
   var availableClubs = allKlub.filter(c => !takenClubs.includes(c));
+  var allParticipantsSpun = allPeserta.length > 0 && availableUsers.length === 0;
 
   // 3. Ambil / Buat Jadwal Pertandingan 2 Leg
   var matches = [];
   var uniqueClubs = [...new Set(takenClubs)];
+  var expectedMatchCount = uniqueClubs.length * (uniqueClubs.length - 1);
+  var scheduleRowCount = Math.max(0, jadwalSheet.getLastRow() - 1);
 
-  if (jadwalSheet.getLastRow() > 1) {
+  // Jadwal lama yang terbuat dari hasil spin parsial harus dibuat ulang setelah semua peserta selesai.
+  if (allParticipantsSpun && scheduleRowCount > 0 && scheduleRowCount !== expectedMatchCount) {
+    jadwalSheet.getRange(2, 1, scheduleRowCount, 7).clearContent();
+    scheduleRowCount = 0;
+  }
+
+  if (scheduleRowCount > 0) {
     // Jika tab Jadwal sudah ada datanya, baca pertandingan & skornya
-    var rawMatches = jadwalSheet.getRange(2, 1, jadwalSheet.getLastRow() - 1, 7).getValues();
+    var rawMatches = jadwalSheet.getRange(2, 1, scheduleRowCount, 7).getValues();
     rawMatches.forEach(r => {
       var updatedAt = (r[6] !== "" && r[6] !== undefined && r[6] !== null) ? r[6].toString() : "";
       matches.push({
@@ -136,7 +145,7 @@ function getSyncData(ss) {
         updatedAt: updatedAt
       });
     });
-  } else if (uniqueClubs.length >= 2) {
+  } else if (allParticipantsSpun && uniqueClubs.length >= 2) {
     // Jika tab Jadwal masih kosong, buat jadwal otomatis 2 Leg di Google Sheet
     var matchId = 1;
     var leg1 = [];
@@ -179,7 +188,8 @@ function getSyncData(ss) {
     results: results,
     clubsInLeague: uniqueClubs,
     matches: matches,
-    isLeagueStarted: isLeagueStarted
+    isLeagueStarted: isLeagueStarted,
+    allParticipantsSpun: allParticipantsSpun
   };
 }
 
