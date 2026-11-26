@@ -99,10 +99,10 @@ function getSyncData(ss) {
   var jadwalSheet = getSheetOrCreate(ss, "Jadwal", ["ID", "Leg", "Tim Home", "Skor Home", "Skor Away", "Tim Away", "Terakhir Diupdate"]);
 
   // 1. Ambil Master Peserta & Klub
-  var participantImages = {};
+  var participantImageFiles = {};
   var allPeserta = pesertaSheet.getLastRow() > 1 ? pesertaSheet.getRange(2, 1, pesertaSheet.getLastRow() - 1, 2).getValues().map(r => {
     var name = r[0].toString().trim();
-    if (name) participantImages[name] = r[1] ? r[1].toString().trim() : "";
+    if (name) participantImageFiles[name] = r[1] ? r[1].toString().trim() : "";
     return name;
   }).filter(v => v !== "") : [];
   var allKlub = klubSheet.getLastRow() > 1 ? klubSheet.getRange(2, 1, klubSheet.getLastRow() - 1, 1).getValues().map(r => r[0].toString().trim()).filter(v => v !== "") : [];
@@ -118,7 +118,7 @@ function getSyncData(ss) {
         takenUsers.push(r[1].toString().trim());
         takenClubs.push(r[2].toString().trim());
         var user = r[1].toString().trim();
-        results.push({ time: r[0], user: user, club: r[2], imageUrl: participantImages[user] || "" });
+        results.push({ time: r[0], user: user, club: r[2], imageFile: participantImageFiles[user] || "" });
       }
     });
   }

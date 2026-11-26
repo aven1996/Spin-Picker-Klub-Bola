@@ -290,7 +290,7 @@
         let participatingClubs = [];
         let matches = [];
         let clubUserMap = {}; // Penyimpan relasi Klub -> Nama Peserta
-        let clubImageSourceMap = {};
+        let clubImageFileMap = {};
         let lastServerDataSignature = null;
         let activeMatchId = null;
         let currentFilter = 'all';
@@ -342,7 +342,7 @@
             return `<span>${clubName}</span>`;
         }
 
-        function createProfileAvatar(imageSource, participantName) {
+        function createProfileAvatar(imageFileName, participantName) {
             const nameParts = (participantName || "")
                 .trim()
                 .split(/\s+/)
@@ -356,35 +356,17 @@
             placeholder.textContent = displayInitials;
             placeholder.setAttribute("aria-label", `Foto ${participantName || "peserta"} tidak tersedia`);
 
-            const profileImageSource = (imageSource || "").trim();
-            const isDriveFileId = /^[A-Za-z0-9_-]+$/.test(profileImageSource);
-            let imageUrl = profileImageSource;
-            let fallbackImageUrl = "";
-            if (isDriveFileId) {
-                const driveFileId = encodeURIComponent(profileImageSource);
-                imageUrl = `https://drive.google.com/uc?export=download&id=${driveFileId}`;
-                fallbackImageUrl = `https://drive.google.com/thumbnail?id=${driveFileId}&sz=w160`;
-            } else {
-                try {
-                    if (new URL(profileImageSource).protocol !== "https:") return placeholder;
-                } catch (err) {
-                    return placeholder;
-                }
+            const fileName = (imageFileName || "").trim();
+            if (!fileName || /[\\/:*?"<>|]/.test(fileName) || !/\.(png|jpe?g|webp|gif|avif)$/i.test(fileName)) {
+                return placeholder;
             }
 
             const image = document.createElement("img");
             image.className = "profile-image";
             image.alt = `Foto profil ${participantName || "peserta"}`;
             image.loading = "lazy";
-            image.addEventListener("error", () => {
-                if (fallbackImageUrl) {
-                    image.src = fallbackImageUrl;
-                    fallbackImageUrl = "";
-                    return;
-                }
-                image.replaceWith(placeholder);
-            });
-            image.src = imageUrl;
+            image.addEventListener("error", () => image.replaceWith(placeholder), { once: true });
+            image.src = `./emblem/${encodeURIComponent(fileName)}`;
             return image;
         }
 
@@ -403,11 +385,11 @@
                 if (dataSignature !== lastServerDataSignature) {
                     // Petakan Nama Peserta dari Tab 'Hasil' (data.results)
                     clubUserMap = {};
-                    clubImageSourceMap = {};
+                    clubImageFileMap = {};
                     results.forEach(r => {
                         if (r.club && r.user) {
                             clubUserMap[r.club.trim()] = r.user.trim();
-                            clubImageSourceMap[r.club.trim()] = r.imageUrl || r.imageId || "";
+                            clubImageFileMap[r.club.trim()] = r.imageFile || "";
                         }
                     });
 
@@ -700,7 +682,7 @@
                     <td class="pts">${row.pts}</td>
                 `;
                 tr.querySelector(".profile-cell").appendChild(
-                    createProfileAvatar(clubImageSourceMap[row.name], clubUserMap[row.name])
+                    createProfileAvatar(clubImageFileMap[row.name], clubUserMap[row.name])
                 );
                 tbody.appendChild(tr);
             });
