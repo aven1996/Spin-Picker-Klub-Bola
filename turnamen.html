@@ -336,9 +336,16 @@
         }
 
         function createProfileAvatar(imageId, participantName) {
+            const initials = (participantName || "?")
+                .trim()
+                .split(/\s+/)
+                .map(namePart => namePart.charAt(0))
+                .join("")
+                .slice(0, 2)
+                .toUpperCase() || "?";
             const placeholder = document.createElement("span");
             placeholder.className = "profile-placeholder";
-            placeholder.textContent = (participantName || "?").trim().charAt(0).toUpperCase() || "?";
+            placeholder.textContent = initials;
             placeholder.setAttribute("aria-label", `Foto ${participantName || "peserta"} tidak tersedia`);
 
             const driveFileId = (imageId || "").trim();
