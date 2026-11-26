@@ -360,10 +360,18 @@
 
             const image = document.createElement("img");
             image.className = "profile-image";
-            image.src = `https://drive.google.com/uc?export=view&id=${encodeURIComponent(driveFileId)}`;
             image.alt = `Foto profil ${participantName || "peserta"}`;
             image.loading = "lazy";
-            image.addEventListener("error", () => image.replaceWith(placeholder), { once: true });
+            let usingThumbnail = false;
+            image.addEventListener("error", () => {
+                if (!usingThumbnail) {
+                    usingThumbnail = true;
+                    image.src = `https://drive.google.com/thumbnail?id=${encodeURIComponent(driveFileId)}&sz=w160`;
+                    return;
+                }
+                image.replaceWith(placeholder);
+            });
+            image.src = `https://drive.google.com/uc?export=download&id=${encodeURIComponent(driveFileId)}`;
             return image;
         }
 
