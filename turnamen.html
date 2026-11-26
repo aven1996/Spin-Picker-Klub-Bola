@@ -157,7 +157,7 @@
         td.profile-cell { width: 58px; padding: 6px; }
         .profile-image {
             width: 38px; height: 38px; border-radius: 0; object-fit: contain;
-            border: none; display: inline-block; vertical-align: middle;
+            border: none; background: transparent; display: inline-block; vertical-align: middle;
         }
         .profile-placeholder {
             width: 38px; height: 38px; border-radius: 50%;
@@ -360,7 +360,7 @@
 
             const image = document.createElement("img");
             image.className = "profile-image";
-            image.src = `https://drive.google.com/thumbnail?id=${encodeURIComponent(driveFileId)}&sz=w160`;
+            image.src = `https://drive.google.com/uc?export=view&id=${encodeURIComponent(driveFileId)}`;
             image.alt = `Foto profil ${participantName || "peserta"}`;
             image.loading = "lazy";
             image.addEventListener("error", () => image.replaceWith(placeholder), { once: true });
