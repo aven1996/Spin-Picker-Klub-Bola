@@ -152,6 +152,13 @@
         tr:nth-child(even) { background: rgba(15, 23, 42, 0.4); }
         td.team { text-align: left; font-weight: 700; color: #ffffff; }
         td.pts { font-weight: 800; color: #38bdf8; font-size: 1.05rem; background: rgba(56, 189, 248, 0.08); }
+        td.profile-cell { width: 58px; padding: 6px; }
+        .profile-image, .profile-placeholder {
+            width: 38px; height: 38px; border-radius: 50%; object-fit: cover;
+            border: 2px solid #475569; display: inline-flex; align-items: center;
+            justify-content: center; vertical-align: middle;
+        }
+        .profile-placeholder { background: #334155; color: #cbd5e1; font-size: 0.85rem; font-weight: 700; }
 
         /* Modal Dialog Input Skor */
         .modal {
@@ -227,6 +234,7 @@
                     <thead>
                         <tr>
                             <th>Pos</th>
+                            <th>Image</th>
                             <th style="text-align: left;">Klub</th>
                             <th>Mn</th>
                             <th>M</th>
@@ -276,6 +284,7 @@
         let participatingClubs = [];
         let matches = [];
         let clubUserMap = {}; // Penyimpan relasi Klub -> Nama Peserta
+        let clubImageMap = {};
         let activeMatchId = null;
         let currentFilter = 'all';
         let currentSearchTerm = '';
@@ -326,6 +335,31 @@
             return `<span>${clubName}</span>`;
         }
 
+        function createProfileAvatar(imageUrl, participantName) {
+            const placeholder = document.createElement("span");
+            placeholder.className = "profile-placeholder";
+            placeholder.textContent = (participantName || "?").trim().charAt(0).toUpperCase() || "?";
+            placeholder.setAttribute("aria-label", `Foto ${participantName || "peserta"} tidak tersedia`);
+
+            if (!imageUrl) return placeholder;
+
+            let parsedUrl;
+            try {
+                parsedUrl = new URL(imageUrl);
+            } catch (err) {
+                return placeholder;
+            }
+            if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") return placeholder;
+
+            const image = document.createElement("img");
+            image.className = "profile-image";
+            image.src = parsedUrl.href;
+            image.alt = `Foto profil ${participantName || "peserta"}`;
+            image.loading = "lazy";
+            image.addEventListener("error", () => image.replaceWith(placeholder), { once: true });
+            return image;
+        }
+
         // 1. Ambil Data Jadwal, Skor, & Nama Peserta dari Google Sheet
         async function fetchServerData() {
             if (isSaving || document.getElementById("scoreModal").style.display === "flex") return;
@@ -336,10 +370,12 @@
 
                 // Petakan Nama Peserta dari Tab 'Hasil' (data.results)
                 clubUserMap = {};
+                clubImageMap = {};
                 if (data.results && data.results.length > 0) {
                     data.results.forEach(r => {
                         if (r.club && r.user) {
                             clubUserMap[r.club.trim()] = r.user.trim();
+                            clubImageMap[r.club.trim()] = r.image || "";
                         }
                     });
                 }
@@ -614,6 +650,7 @@
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td style="font-weight:bold; color:#94a3b8;">${i + 1}</td>
+                    <td class="profile-cell"></td>
                     <td class="team">${getClubDisplayHTML(row.name)}</td>
                     <td>${row.played}</td>
                     <td>${row.won}</td>
@@ -626,6 +663,9 @@
                     </td>
                     <td class="pts">${row.pts}</td>
                 `;
+                tr.querySelector(".profile-cell").appendChild(
+                    createProfileAvatar(clubImageMap[row.name], clubUserMap[row.name])
+                );
                 tbody.appendChild(tr);
             });
         }

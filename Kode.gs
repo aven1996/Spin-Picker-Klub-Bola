@@ -90,13 +90,21 @@ function doPost(e) {
 
 // Fungsi pembantu membaca semua data dan jadwal liga
 function getSyncData(ss) {
-  var pesertaSheet = getSheetOrCreate(ss, "Peserta", ["Nama Peserta"]);
+  var pesertaSheet = getSheetOrCreate(ss, "Peserta", ["Nama Peserta", "Image"]);
+  if (!pesertaSheet.getRange(1, 2).getValue()) {
+    pesertaSheet.getRange(1, 2).setValue("Image");
+  }
   var klubSheet = getSheetOrCreate(ss, "Klub", ["Nama Klub"]);
   var hasilSheet = getSheetOrCreate(ss, "Hasil", ["Waktu", "Nama Peserta", "Klub Terpilih"]);
   var jadwalSheet = getSheetOrCreate(ss, "Jadwal", ["ID", "Leg", "Tim Home", "Skor Home", "Skor Away", "Tim Away", "Terakhir Diupdate"]);
 
   // 1. Ambil Master Peserta & Klub
-  var allPeserta = pesertaSheet.getLastRow() > 1 ? pesertaSheet.getRange(2, 1, pesertaSheet.getLastRow() - 1, 1).getValues().map(r => r[0].toString().trim()).filter(v => v !== "") : [];
+  var participantImages = {};
+  var allPeserta = pesertaSheet.getLastRow() > 1 ? pesertaSheet.getRange(2, 1, pesertaSheet.getLastRow() - 1, 2).getValues().map(r => {
+    var name = r[0].toString().trim();
+    if (name) participantImages[name] = r[1] ? r[1].toString().trim() : "";
+    return name;
+  }).filter(v => v !== "") : [];
   var allKlub = klubSheet.getLastRow() > 1 ? klubSheet.getRange(2, 1, klubSheet.getLastRow() - 1, 1).getValues().map(r => r[0].toString().trim()).filter(v => v !== "") : [];
 
   // 2. Ambil Hasil Undian
@@ -109,7 +117,8 @@ function getSyncData(ss) {
       if (r[1] && r[2]) {
         takenUsers.push(r[1].toString().trim());
         takenClubs.push(r[2].toString().trim());
-        results.push({ time: r[0], user: r[1], club: r[2] });
+        var user = r[1].toString().trim();
+        results.push({ time: r[0], user: user, club: r[2], image: participantImages[user] || "" });
       }
     });
   }
