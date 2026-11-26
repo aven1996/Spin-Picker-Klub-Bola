@@ -335,25 +335,18 @@
             return `<span>${clubName}</span>`;
         }
 
-        function createProfileAvatar(imageUrl, participantName) {
+        function createProfileAvatar(imageId, participantName) {
             const placeholder = document.createElement("span");
             placeholder.className = "profile-placeholder";
             placeholder.textContent = (participantName || "?").trim().charAt(0).toUpperCase() || "?";
             placeholder.setAttribute("aria-label", `Foto ${participantName || "peserta"} tidak tersedia`);
 
-            if (!imageUrl) return placeholder;
-
-            let parsedUrl;
-            try {
-                parsedUrl = new URL(imageUrl);
-            } catch (err) {
-                return placeholder;
-            }
-            if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") return placeholder;
+            const driveFileId = (imageId || "").trim();
+            if (!/^[A-Za-z0-9_-]+$/.test(driveFileId)) return placeholder;
 
             const image = document.createElement("img");
             image.className = "profile-image";
-            image.src = parsedUrl.href;
+            image.src = `https://drive.google.com/thumbnail?id=${encodeURIComponent(driveFileId)}&sz=w160`;
             image.alt = `Foto profil ${participantName || "peserta"}`;
             image.loading = "lazy";
             image.addEventListener("error", () => image.replaceWith(placeholder), { once: true });
@@ -375,7 +368,7 @@
                     data.results.forEach(r => {
                         if (r.club && r.user) {
                             clubUserMap[r.club.trim()] = r.user.trim();
-                            clubImageMap[r.club.trim()] = r.image || "";
+                            clubImageMap[r.club.trim()] = r.imageId || "";
                         }
                     });
                 }

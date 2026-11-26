@@ -118,7 +118,7 @@ function getSyncData(ss) {
         takenUsers.push(r[1].toString().trim());
         takenClubs.push(r[2].toString().trim());
         var user = r[1].toString().trim();
-        results.push({ time: r[0], user: user, club: r[2], image: participantImages[user] || "" });
+        results.push({ time: r[0], user: user, club: r[2], imageId: participantImages[user] || "" });
       }
     });
   }
