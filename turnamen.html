@@ -193,14 +193,14 @@
             <img src="logo-SL.png" alt="Logo Smuhda League" class="title-logo">
             <div class="title-text">
                 <h1>SMUHDA LEAGUE</h1>
-                <p class="desc">Sistem 2 Leg (Kandang & Tandang). Setiap perubahan skor otomatis tersimpan di Google Sheet.</p>
+                <p class="desc">Jadwal dan Klasemen Pertandingan Smuhda League dengan sistem 2 Leg (Kandang & Tandang). Setiap perubahan skor otomatis tersimpan</p>
             </div>
         </header>
 
         <div style="text-align: center;">
             <div class="sync-badge">
                 <span class="sync-dot"></span>
-                <span id="syncStatus">Memuat data liga dari Google Sheet...</span>
+                <span id="syncStatus">Memuat data liga dari Databases...</span>
             </div>
         </div>
 
@@ -336,16 +336,17 @@
         }
 
         function createProfileAvatar(imageId, participantName) {
-            const initials = (participantName || "?")
+            const nameParts = (participantName || "")
                 .trim()
                 .split(/\s+/)
-                .map(namePart => namePart.charAt(0))
-                .join("")
-                .slice(0, 2)
-                .toUpperCase() || "?";
+                .filter(Boolean);
+            const initials = nameParts.length === 1
+                ? nameParts[0].slice(0, 2)
+                : nameParts.map(namePart => namePart.charAt(0)).join("").slice(0, 2);
+            const displayInitials = (initials || "?").toUpperCase();
             const placeholder = document.createElement("span");
             placeholder.className = "profile-placeholder";
-            placeholder.textContent = initials;
+            placeholder.textContent = displayInitials;
             placeholder.setAttribute("aria-label", `Foto ${participantName || "peserta"} tidak tersedia`);
 
             const driveFileId = (imageId || "").trim();
@@ -387,7 +388,7 @@
                 if (matches.length > 0) {
                     renderMatches(currentFilter);
                     calculateStandings();
-                    syncStatus.textContent = `Tersinkron dengan Google Sheet (${new Date().toLocaleTimeString()})`;
+                    syncStatus.textContent = `Tersinkron dengan Database (${new Date().toLocaleTimeString()})`;
                 } else {
                     syncStatus.textContent = "⚠️ Belum ada jadwal di tab 'Jadwal' atau klub di tab 'Hasil' kurang dari 2.";
                 }
@@ -516,7 +517,7 @@
             calculateStandings();
 
             isSaving = true;
-            syncStatus.textContent = "⏳ Menyimpan skor ke Google Sheet...";
+            syncStatus.textContent = "⏳ Menyimpan skor ke Database...";
 
             try {
                 const response = await fetch(SCRIPT_URL, {
@@ -538,7 +539,7 @@
                     }
                     sortMatchesByLastUpdate();
                     renderMatches(currentFilter);
-                    syncStatus.textContent = "✅ Skor berhasil tersimpan di Google Sheet!";
+                    syncStatus.textContent = "✅ Skor berhasil tersimpan di Database!";
                 } else {
                     syncStatus.textContent = "⚠️ " + resData.message;
                 }
@@ -565,7 +566,7 @@
             calculateStandings();
 
             isSaving = true;
-            syncStatus.textContent = "⏳ Menghapus skor di Google Sheet...";
+            syncStatus.textContent = "⏳ Menghapus skor di Database...";
 
             try {
                 await fetch(SCRIPT_URL, {
@@ -578,7 +579,7 @@
                         awayScore: null
                     })
                 });
-                syncStatus.textContent = "✅ Skor di-reset di Google Sheet!";
+                syncStatus.textContent = "✅ Skor di-reset di Database!";
             } catch (err) {
                 syncStatus.textContent = "Gagal memperbarui server.";
             } finally {
@@ -588,7 +589,7 @@
 
         // Reset Semua Skor di Google Sheet
         async function resetAllScores() {
-            if (!confirm("Yakin ingin menghapus seluruh skor pertandingan di Google Sheet?")) return;
+            if (!confirm("Yakin ingin menghapus seluruh skor pertandingan di Database?")) return;
 
             matches.forEach(m => {
                 m.homeScore = null;
@@ -599,14 +600,14 @@
             renderMatches(currentFilter);
             calculateStandings();
 
-            syncStatus.textContent = "⏳ Mereset semua skor di Google Sheet...";
+            syncStatus.textContent = "⏳ Mereset semua skor di Database...";
             try {
                 await fetch(SCRIPT_URL, {
                     method: "POST",
                     headers: { "Content-Type": "text/plain;charset=utf-8" },
                     body: JSON.stringify({ action: "resetScores" })
                 });
-                syncStatus.textContent = "✅ Seluruh skor telah dibersihkan di Google Sheet!";
+                syncStatus.textContent = "✅ Seluruh skor telah dibersihkan di Database!";
             } catch (err) {
                 syncStatus.textContent = "Gagal mereset server.";
             }
